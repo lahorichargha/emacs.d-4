@@ -1,4 +1,5 @@
 (require 'dss-paths)
+(require 'dss-elisp-funcs)
 (defvar user-temporary-file-directory (concat dss-ephemeral-dir "tmp/"))
 (make-directory user-temporary-file-directory t)
 (setq backup-by-copying t)
@@ -37,7 +38,7 @@
   PERSISTENT-SCRATCH-FILENAME, making a backup copy in
   PERSISTENT-SCRATCH-BACKUP-DIRECTORY."
   (interactive)
-  (with-current-buffer (get-buffer "*scratch*")
+  (with-current-buffer (switch-to-buffer "*scratch*")
     (if (file-exists-p persistent-scratch-filename)
         (copy-file persistent-scratch-filename
                    (make-persistent-scratch-backup-name)))
