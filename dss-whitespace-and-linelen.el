@@ -15,7 +15,8 @@
   (interactive)
   (setq show-trailing-whitespace t)
   (show-ws-highlight-tabs)
-  (hl-line-mode 1))
+  ;; (hl-line-mode 1)
+  )
 
 (defun dss/del-last-space (&optional replacement)
   (interactive)
@@ -23,6 +24,16 @@
     (save-excursion
       (search-backward-regexp "\\([^ ]\\)\\( +\\)")
       (replace-match replacement nil nil nil 2))))
+
+(defun dss/del-last-space-2 ()
+  (interactive)
+  (save-excursion
+    (if (string-equal (char-to-string (char-before)) " ")
+        (progn (backward-word) (dss/del-last-space))
+      (dss/del-last-space))
+    )
+  (if (not (string-equal (char-to-string (char-before)) " "))
+      (insert " ")))
 
 (defun dss/less-space ()
   (interactive)
