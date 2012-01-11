@@ -33,6 +33,35 @@
   (setq isearch-string isearch-initial-string)
   (isearch-search-and-update))
 
+
+;;; http://www.emacswiki.org/emacs/KillISearchMatch
+  ;; (defun kill-isearch-match ()
+  ;;   "Kill the current isearch match string and continue searching."
+  ;;   (interactive)
+  ;;   (kill-region isearch-other-end (point)))
+  ;; (define-key isearch-mode-map [(control k)] 'kill-isearch-match)
+
+  ;; Comment line matching and continue searching:
+  ;; (define-key isearch-mode-map (kbd "C-c")
+  ;;   (lambda ()
+  ;;     (interactive)
+  ;;     (save-excursion
+  ;;       (comment-region (point-at-bol) (point-at-eol)))
+  ;;     (if isearch-forward
+  ;;         (isearch-repeat-forward)
+  ;;         (isearch-repeat-backward))))
+
+  ;; ;; Kill line matching and continue searching:
+  ;; (define-key isearch-mode-map (kbd "C-k")
+  ;;   (lambda ()
+  ;;     (interactive)
+  ;;     (save-excursion
+  ;;       (beginning-of-line)
+  ;;       (kill-line))
+  ;;     (if isearch-forward
+  ;;         (isearch-repeat-forward)
+  ;;         (isearch-repeat-backward))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; http://www.masteringemacs.org/articles/2011/07/20/searching-buffers-occur-mode/
 (defun dss/get-buffers-matching-mode (mode)
