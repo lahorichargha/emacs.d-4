@@ -1,6 +1,7 @@
 (require 'slime)
 (slime-setup '(slime-repl))
 (setq slime-protocol-version 'ignore)
+(require 'slime-frame-colors)
 
 (add-to-list 'load-path (concat dss-vendor-dir "ac-slime"))
 (require 'ac-slime)
@@ -32,7 +33,6 @@
 ;;                           (concat "/ssh:hunchentoot@sample.ponto-dot.com#5201:" filename)))
 ;;                   slime-filename-translations)))
 ;;; /scpc:sociallinks:
-
 
 (defun slime-tramp-local-filename (f)
   (interactive)
