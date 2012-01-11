@@ -34,4 +34,24 @@
   "An asynchronous version of `dss/call-command-with-input`"
   (apply 'dss/call-command-with-input (append (list command input 0) args)))
 
+
+;;; http://lists.gnu.org/archive/html/help-gnu-emacs/2009-06/msg00764.html
+(defun partition-list (list length)
+  (loop
+     while list
+     collect (subseq list 0 length)
+     do (setf list (nthcdr length list))))
+
+(defun partition-vector (vector length)
+  (loop
+     for i = 0 then (+ i length)
+     while (< i (length vector))
+     collect (subseq vector i (+ i length))))
+
+(defun partition (sequence length)
+   (etypecase sequence
+      (list   (partition-list sequence length))
+      (string (partition-vector sequence length)) ; emacs lisp strings are not vectors!
+      (vector (partition-vector sequence length))))
+
 (provide 'dss-elisp-funcs)
