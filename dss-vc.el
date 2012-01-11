@@ -4,6 +4,24 @@
 (require 'vc)
 (require 'magit)
 
+(setq magit-remote-ref-format 'remote-slash-branch)
+
+;;; the builtin versions are buggy when the remote is anything other than origin/..
+;;; http://stackoverflow.com/questions/2016901/viewing-unpushed-git-commits
+(magit-define-inserter unpulled-commits (remote branch)
+  (when remote
+    (apply #'magit-git-section
+           'unpulled "Unpulled commits:" 'magit-wash-log "log"
+           (append magit-git-log-options
+                   (list "..@{u}")))))
+
+(magit-define-inserter unpushed-commits (remote branch)
+  (when remote
+    (apply #'magit-git-section
+           'unpushed "Unpushed commits:" 'magit-wash-log "log"
+           (append magit-git-log-options
+                   (list "@{u}..")))))
+
 (setq dvc-tips-enabled nil)
 (setq vc-follow-symlinks t)
 
