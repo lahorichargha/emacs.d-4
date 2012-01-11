@@ -61,7 +61,7 @@
         ;; (:name slime-fuzzy :type http :url
         ;;        "http://elder-gods.org/~larry/repos/slime-tracker/contrib/slime-fuzzy.el")
 
-	(:name slime :type elpa)
+                                        ;(:name slime :type elpa)
 
         ;; (:name slime
         ;;        :description "Superior Lisp Interaction Mode for Emacs"
@@ -74,8 +74,20 @@
         ;;        :compile (".")
         ;;        :build ("make -C doc && rm contrib/slime-tramp.elc")
         ;;        )
+        (:name magit
+               :website "https://github.com/magit/magit#readme"
+               :description "It's Magit! An Emacs mode for Git."
+               :type git
+               :url "http://github.com/magit/magit.git"
+               :branch "next"
+               :info "."
+               ;; that used to be how to build it :build ("./autogen.sh" "./configure" "make")
+               :build ("make all")
+               :build/darwin `(,(concat "PATH=" invocation-directory ":$PATH make all")))
 
         (:name isearch+ :type emacswiki)
+        (:name grep-a-lot :type git :url
+               "https://github.com/ZungBang/emacs-grep-a-lot")
         (:name idle-highlight-mode :type git :url
                "https://github.com/nonsequitur/idle-highlight-mode.git")
         (:name list-register :type http :url "http://www.bookshelf.jp/elc/list-register.el")
@@ -89,6 +101,7 @@
         (:name ac-dabbrev :type emacswiki)
         (:name show-wspace :type emacswiki)
         (:name visible-mark :type emacswiki)
+        (:name transpose-frame :type emacswiki)
         (:name relax :type git :url "https://github.com/technomancy/relax.el")
         (:name moz :type git :url "http://github.com/bard/mozrepl.git"
                :load "chrome/content/moz.el")
@@ -111,6 +124,7 @@
         color-theme
         rainbow-mode
         isearch+
+        grep-a-lot
         undo-tree goto-last-change
         filladapt
         show-wspace lineker
@@ -118,14 +132,15 @@
         iedit highlight-symbol idle-highlight-mode
         list-register bm breadcrumb
         window-numbering column-marker vline col-highlight
+        transpose-frame
 
-        dvc egg magit magithub gist
+        dvc magit magithub gist
 
         yasnippet auto-complete ac-dabbrev
 
         paredit rainbow-delimiters autopair
 
-        slime ac-slime
+        ac-slime
 
         clojure-mode elein
         coffee-mode
