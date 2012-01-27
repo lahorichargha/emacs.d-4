@@ -42,23 +42,10 @@ http://github.com/technomancy/emacs-starter-kit/blob/master/starter-kit-defuns.e
 (add-to-list 'desktop-globals-to-save 'moz-repl-host)
 (add-to-list 'desktop-globals-to-save 'moz-repl-port)
 
-(defun dss/moz-connect-mac ()
-  (interactive)
-  (setq moz-repl-host "tavismac")
-  (dss/moz-restart-repl))
-
-(defun dss/moz-connect-localhost ()
-  (interactive)
-  (setq moz-repl-host "localhost")
-  (dss/moz-restart-repl))
-
-(defun dss/moz-connect-b3 ()
-  (interactive)
-  (setq moz-repl-host "vb3")
-  (dss/moz-restart-repl))
-
+(setq moz-restart-repl-hooks '())
 (defun dss/moz-restart-repl ()
   (interactive)
+  (run-hooks 'moz-restart-repl-hooks)
   (if (and (buffer-live-p inferior-moz-buffer)
            (get-buffer-process inferior-moz-buffer))
       (progn
