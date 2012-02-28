@@ -32,7 +32,6 @@
   (if (not ac-completing)
       (call-interactively 'hippie-expand)
     (ac-expand)))
-(define-key ac-completing-map (kbd "M-/") 'ac-expand)
 (global-set-key (kbd "M-/") 'dss/hippie-expand)
 (global-set-key (kbd "M-TAB") 'dabbrev-expand)
 
@@ -86,20 +85,36 @@
 (define-key subword-mode-map (kbd "M-f") 'forward-word)
 (define-key global-map "\eOd" 'backward-word)
 
-;;
+;;; there has to be a cleaner way to do this ...
+;; terminal/gnu-screen arrow key support
 (define-key global-map "\e[A" (kbd "<up>"))
 (define-key global-map "\e[B" (kbd "<down>"))
 (define-key global-map "\e[C" (kbd "<right>"))
 (define-key global-map "\e[D" (kbd "<left>"))
 
+(define-key global-map "\e[1;9A" (kbd "M-<up>"))
+(define-key global-map "\e[1;9B" (kbd "M-<down>"))
+(define-key global-map "\e[1;9C" (kbd "M-<right>"))
+(define-key global-map "\e[1;9D" (kbd "M-<left>"))
+
+;;; shift arrow key support inside of gnu screen / iTerm
+(define-key global-map "\eO2D" (kbd "S-<left>"))
+(define-key global-map "\eO2C" (kbd "S-<right>"))
+(define-key global-map "\eO2A" (kbd "S-<up>"))
+(define-key global-map "\eO2B" (kbd "S-<down>"))
+;;; shift arrow in gnu screen / urxvt
+(define-key global-map "\e[d" (kbd "S-<left>"))
+(define-key global-map "\e[c" (kbd "S-<right>"))
+(define-key global-map "\e[a" (kbd "S-<up>"))
+(define-key global-map "\e[b" (kbd "S-<down>"))
+
+(define-key global-map "\e[1;10D" (kbd "M-S-<left>"))
+(define-key global-map "\e[1;10C" (kbd "M-S-<right>"))
+(define-key global-map "\e[1;10A" (kbd "M-S-<up>"))
+(define-key global-map "\e[1;10B" (kbd "M-S-<down>"))
+
 (define-key paredit-mode-map (kbd "C-<right>") 'forward-word)
 (define-key paredit-mode-map (kbd "C-<left>") 'backward-word)
-
-(define-key ac-completing-map "\e[A" 'ac-previous)
-(define-key ac-completing-map "\e[B" 'ac-next)
-
-(define-key ac-completing-map "\eOa" 'ac-quick-help-scroll-up)
-(define-key ac-completing-map "\eOb" 'ac-quick-help-scroll-down)
 
 (define-key ido-common-completion-map "\e[A" 'previous-history-element)
 (define-key ido-common-completion-map "\e[B" 'next-history-element)
@@ -113,8 +128,10 @@
 ;; (define-key ido-completion-map "\e[C" 'ido-next-match)
 ;; (define-key ido-completion-map "\e[D" 'ido-prev-match)
 
-(define-key ido-file-completion-map "\e[C" 'ido-next-match)
-(define-key ido-file-completion-map "\e[D" 'ido-prev-match)
+(define-key ido-file-dir-completion-map "\e[C" 'ido-next-match)
+(define-key ido-file-dir-completion-map "\e[D" 'ido-prev-match)
+(define-key ido-file-dir-completion-map "\C-]" 'ido-undo-merge-work-directory)
+
 
 (define-key ido-buffer-completion-map "\e[C" 'ido-next-match)
 (define-key ido-buffer-completion-map "\e[D" 'ido-prev-match)
@@ -344,8 +361,9 @@
 
 (define-key f7-map "d" 'slime-describe-symbol)
 (define-key f7-map "i" 'slime-inspect)
+(define-key f7-map [(f7)] 'slime-selector)
+(define-key f7-map "a" 'slime-apropos)
 
-(define-key f7-map "a" 'auto-complete-mode)
 (define-key f7-map "=" 'dss/toggle-current-window-dedication)
 (define-key f7-map "'" 'k2-kill-whole-paragraph)
 (define-key f7-map "," 'k2-copy-whole-paragraph)
