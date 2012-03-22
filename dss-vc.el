@@ -24,6 +24,7 @@
 
 (setq dvc-tips-enabled nil)
 (setq vc-follow-symlinks t)
+(define-key magit-mode-map (kbd "<") 'magit-pull)
 
 (defun vc-ediff ()
   (interactive)
