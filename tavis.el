@@ -21,7 +21,7 @@
 (setq suggest-key-bindings nil)
 
 ;; http://emacs-fu.blogspot.com/2009/11/showing-pop-ups.html
-(defun dss-popup-notify (title msg &optional icon sound)
+(defun dss/popup-notify (title msg &optional icon sound)
   (interactive)
   (let ((sound (if (and (numberp sound) (not (< sound 0)))
                    (or sound "/usr/share/sounds/phone.wav"))))
@@ -39,209 +39,162 @@
       "echo '" title "' | prowl_tavis.sh -1 'Emacs notification'") nil 0)
     (message (concat title ": " msg))))
 
-(defvar *dss-org-notification-hooks* nil)
-(defun dss/org-notify (msg)
-  (interactive "sMsg: ")
-  (dss-popup-notify "org-mode" msg)
-  (dss/org-set-task-state msg)
-  (run-hooks '*dss-org-notification-hooks*))
-
-(setq org-show-notification-handler
-      (lambda (msg)
-        (dss/org-notify msg)))
-
-(setq dss-org-timer-message "timer done")
-(defun dss/org-set-timer-message (message)
-  (interactive "sMessage:")
-  (setq dss-org-timer-message message))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defvar *dss-annoying-modeline-timer* nil)
-
-(defun dss/cancel-annoying-modeline ()
-  (interactive)
-  (if *dss-annoying-modeline-timer*
-      (cancel-timer *dss-annoying-modeline-timer*))
-  (run-with-timer 1 nil (lambda () (set-face-inverse-video-p 'modeline nil))))
-
-(defvar *dss-nag-timer-hook* nil)
-(defun dss/osx-nag ()
-  (interactive)
-  (if (> (random 2) 0)
-      (dss/org-set-task-state "FOCUS !!!")
-    (dss/org-set-task-state "!!! FOCUS")))
-
-(add-hook '*dss-nag-timer-hook* 'dss/osx-nag)
-
-(defun dss/start-annoying-modeline ()
-  (interactive)
-  (if *dss-annoying-modeline-timer*
-      (cancel-timer *dss-annoying-modeline-timer*))
-  (setq *dss-annoying-modeline-timer*
-        (run-with-timer 0 4
-                        (lambda ()
-                          (if (face-inverse-video-p 'modeline)
-                              (set-face-inverse-video-p 'modeline nil)
-                            (set-face-inverse-video-p 'modeline t))
-                          (run-hooks '*dss-nag-timer-hook*)))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; http://osdir.com/ml/emacs-orgmode-gnu/2009-06/msg00144.html
-
-(defun dss/org-clock-increase-effort-estimate (add-effort)
-  "Add time to the effort estimate.
-Update Effort property of currently clocked item.
-Update mode line."
-  (interactive "sHow much to add? (hh:mm or mm)? ")
-  (if (and (dss/org-clock-is-active) org-clock-effort)
-      (let ((add-effort-minutes (dss/org-string-to-minutes add-effort)))
-        (progn (setq new-effort (org-minutes-to-hh:mm-string
-                                 (+ add-effort-minutes
-                                    (org-hh:mm-string-to-minutes
-                                     org-clock-effort))))
-               (dss/org-clock-set-effort new-effort)))))
-
-(defun dss/org-clock-set-effort (effort-string)
-  "Increase effort estimate PROPERTY for the currently clocked item.
-Jump to the correct buffer, increace the PROPERTY, jump back."
-  (interactive "sHow much to add? (hh:mm or mm)? ")
-  (if (dss/org-clock-is-active)
-      (save-window-excursion
-        (setq org-clock-effort effort-string)
-        (org-clock-update-mode-line)
-        (org-clock-goto)
-        (org-set-property "Effort" effort-string)
-        (message "Effort was increased."))))
-
-
-(defun dss/org-string-to-minutes (string)
-  "Recognizes two formats:
-1:30 - converted to minutes
-30 - interpreted as minutes."
-  (case (length (split-string string ":"))
-    (2 (org-hh:mm-string-to-minutes string))
-    (1 (string-to-int string))))
-
-(defun dss/org-clock-is-active ()
-  "Return true if clock is currently running.
-nil otherwise."
-  (if (marker-buffer org-clock-marker)
-      t))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun dss/org-clock-heading ()
-  (interactive)
-  (if (org-clocking-p)
-      (let ((heading org-clock-heading))
-        (if heading (set-text-properties 0 (length heading) nil heading))
-        heading)))
-
-(defun dss/org-insert-link-to-clock ()
-  (interactive)
-  (save-window-excursion
-    (save-excursion
-      (org-clock-goto)
-      (org-id-get-create)
-      (call-interactively 'org-store-link)))
-  (let* ((last-stored (car org-stored-links))
-         (link (car last-stored))
-         ;; (desc (cdr last-stored))
-         (desc (dss/org-clock-heading)))
-    (insert (org-make-link-string link desc))))
-
-(defun dss/org-clock-in-hook ()
-  (dss/org-set-timer-message "take a break")
-  (org-id-get-create)
-  (dss/cancel-annoying-modeline)
-  (org-timer-set-timer '(16)))
-
-(defun dss/org-clock-out-hook ()
-  (org-timer-cancel-timer)
-  (dss/org-set-timer-message "get back to work")
-  (org-timer-set-timer 5))
-
-(defun dss/org-timer-done-hook ()
-  (dss-popup-notify "org-mode" dss-org-timer-message)
-  (dss/start-annoying-modeline))
-
-(add-hook 'org-clock-in-hook 'dss/org-clock-in-hook)
-(add-hook 'org-clock-out-hook 'dss/org-clock-out-hook)
-(setq org-timer-done-hook 'dss/org-timer-done-hook)
-
-(setq org-timer-default-timer 25)
-(setq org-clock-idle-time 30)
-
-(defun dss/org-set-default-timer (time)
-  (interactive "nDefault: ")
-  (setq org-timer-default-timer time))
-
-
-
-
-
-(defun dss-appt-display (min-to-app new-time msg)
-  (dss-popup-notify (format "Appointment in %s minute(s)" min-to-app)
+(defun dss/appt-display (min-to-app new-time msg)
+  (dss/popup-notify (format "Appointment in %s minute(s)" min-to-app)
                     msg "/usr/share/icons/gnome/32x32/status/appointment-soon.png")
   (appt-disp-window min-to-app new-time msg))
-(setq appt-disp-window-function (function dss-appt-display))
+(setq appt-disp-window-function (function dss/appt-display))
 
 (appt-activate 1)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; org-mode config
 ;; see http://doc.norang.ca/org-mode.html
 
-;(require 'org-babel-init)
-;(require 'org-protocol)
 
 (setq org-directory "~/org_mode/")
 (setq org-clock-persist-file (concat org-directory "/.org-clock-save.el"))
-(setq org-icalendar-include-todo t)
+
+(setq org-hide-leading-stars t)
+(setq org-hide-block-startup t)
+(setq org-show-following-heading t)
+(setq org-show-hierarchy-above t)
+(setq org-show-siblings nil)
+
+(setq org-completion-use-iswitchb t)
+(setq org-completion-use-ido nil)
 (setq org-use-speed-commands t)
+;;org-speed-commands-user
+
+(setq org-special-ctrl-a/e t)
+(setq org-special-ctrl-k t)
 (setq org-return-follows-link t)
+
+
+(setq org-insert-heading-respect-content t)
+(setq org-yank-adjusted-subtrees t)
+
+(setq org-cycle-separator-lines 0)
+(setq org-blank-before-new-entry '((heading) (plain-list-item)))
+
+(setq org-log-done nil)
+(setq org-log-into-drawer "LOGBOOK")
+(setq org-log-refile 'time)
+(setq org-log-reschedule 'time)
+(setq org-log-redeadline 'time)
+(setq org-log-note-headings
+      '((done .  "CLOSING NOTE %t")
+        (state . "State %-12s from %-12S %t")
+        (note .  "Note taken on %t")
+        (reschedule .  "Rescheduled from %S on %t")
+        (delschedule .  "Not scheduled, was %S on %t")
+        (redeadline .  "New deadline from %S on %t")
+        (deldeadline .  "Removed deadline, was %S on %t")
+        (refile . "Refiled from %s to %S on %t")
+        (clock-out . "")))
+
+(defun dss/org-current-timestamp ()
+  (let ((fmt (concat
+              "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
+    (format-time-string fmt)))
+
+(defun dss/org-current-clock-id ()
+  (save-window-excursion
+    (save-excursion
+      (org-clock-goto)
+      (org-id-get-create))))
+
+(defun dss/org-insert-heading-hook ()
+  (interactive)
+  (org-id-get-create)
+  (org-set-property "ADDED" (dss/org-current-timestamp))
+  (if (dss/org-clock-is-active)
+      (org-set-property "CLOCK-WHEN-ADDED" (dss/org-current-clock-id))))
+(add-hook 'org-insert-heading-hook 'dss/org-insert-heading-hook)
+
+
+(setq org-clock-persist t)
+(org-clock-persistence-insinuate)
+(setq org-clock-history-length 35)
+(setq org-clock-persist-query-resume nil)
+(setq org-clock-in-resume t)
+(setq org-clock-in-switch-to-state "STARTED")
+(setq org-clock-into-drawer "CLOCK")
+(setq org-clock-out-remove-zero-time-clocks t)
+(setq org-clock-out-when-done t)
+(setq org-time-stamp-rounding-minutes '(1 5))
+(setq org-clock-idle-time 30)
+
+(defun dss/org-mode-ask-effort ()
+  (unless (org-entry-get (point) "Effort")
+    (let ((effort
+           (completing-read
+            "Effort: "
+            (org-entry-get-multivalued-property (point) "Effort"))))
+      (unless (equal effort "")
+        (org-set-property "Effort" effort)))))
+(add-hook 'org-clock-in-prepare-hook 'dss/org-mode-ask-effort)
+
+;(setq org-columns-default-format "%80ITEM(Task) %10Effort(Effort){:} %10CLOCKSUM")
+(setq org-columns-default-format "%70ITEM %7TODO(To Do) %6Effort{:} %6CLOCKSUM{Total} %10Bill{+}")
+
+
+(setq org-refile-targets '((org-agenda-files . (:maxlevel . 1))))
+(setq org-refile-use-outline-path 'file)
+(setq org-outline-path-complete-in-steps t)
 
 (defun dss/babel-no-confirm ()
   (interactive)
   (setq org-confirm-babel-evaluate nil))
 
 (setq org-src-fontify-natively t)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; tasks and states (norang sec 3)
-(setq org-todo-keywords (quote (
-  (sequence "TODO(t)" "TODAY(y!)" "|" "STARTED(s!)" "|" "DONE(d!/!)")
-  (sequence "WAITING(w@/!)" "SOMEDAY(S!)" "OPEN(O@)" "|" "CANCELLED(c@/!)")
- ;(sequence "QUOTE(q!)" "QUOTED(Q!)" "|" "APPROVED(A@)" "EXPIRED(E@)" "REJECTED(R@)")
- )))
 
-(setq org-todo-keyword-faces (quote (
- ("TODO" :foreground "red" :weight bold)
- ("TODAY" :foreground "color-27" :weight bold)
- ("STARTED" :foreground "color-27" :weight bold)
- ("DONE" :foreground "forest green" :weight bold)
- ("WAITING" :foreground "orange" :weight bold)
- ("SOMEDAY" :foreground "magenta" :weight bold)
- ("CANCELLED" :foreground "forest green" :weight bold)
- ;("QUOTE" :foreground "red" :weight bold)
- ;("QUOTED" :foreground "magenta" :weight bold)
- ;("APPROVED" :foreground "forest green" :weight bold)
- ;("EXPIRED" :foreground "forest green" :weight bold)
- ;("REJECTED" :foreground "forest green" :weight bold)
- ;("OPEN" :foreground "blue" :weight bold)
- )))
+(setq org-enforce-todo-dependencies t)
 (setq org-use-fast-todo-selection t)
-
-;; allow S-left/right state changes that don't set timestamps; useful for state fixups
 (setq org-treat-S-cursor-todo-selection-as-state-change nil)
+(setq org-todo-keywords
+      '(
+       (sequence "TODO(t)" "TODAY(y!)" "|" "STARTED(s!)" "|" "PAUSED(p!)" "|" "DONE(d!/!)")
+       (sequence "WAITING(w@/!)" "SOMEDAY(S!)" "OPEN(O@)" "|" "CANCELLED(c@/!)")
+                                        ;(sequence "QUOTE(q!)" "QUOTED(Q!)" "|" "APPROVED(A@)" "EXPIRED(E@)" "REJECTED(R@)")
+       ))
+
+(setq org-todo-keyword-faces
+      '(
+       ("TODO" :foreground "red" :weight bold)
+       ("TODAY" :foreground "color-27" :weight bold)
+       ("STARTED" :foreground "color-27" :weight bold)
+       ("PAUSED" :foreground "gold" :weight bold)
+       ("DONE" :foreground "forest green" :weight bold)
+       ("WAITING" :foreground "orange" :weight bold)
+       ("SOMEDAY" :foreground "magenta" :weight bold)
+       ("CANCELLED" :foreground "forest green" :weight bold)
+                                        ;("QUOTE" :foreground "red" :weight bold)
+                                        ;("QUOTED" :foreground "magenta" :weight bold)
+                                        ;("APPROVED" :foreground "forest green" :weight bold)
+                                        ;("EXPIRED" :foreground "forest green" :weight bold)
+                                        ;("REJECTED" :foreground "forest green" :weight bold)
+                                        ;("OPEN" :foreground "blue" :weight bold)
+       ))
 
 (setq org-todo-state-tags-triggers
-      (quote (("CANCELLED" ("CANCELLED" . t))
-              ("WAITING" ("WAITING" . t) ("NEXT"))
-              ("SOMEDAY" ("WAITING" . t))
-              (done ("NEXT") ("WAITING"))
-              ("TODO" ("WAITING") ("CANCELLED"))
-              ("STARTED" ("WAITING") ("NEXT" . t)))))
+      '(("CANCELLED" ("CANCELLED" . t))
+       ("WAITING" ("WAITING" . t) ("NEXT"))
+       ("SOMEDAY" ("WAITING" . t))
+       (done ("NEXT") ("WAITING"))
+       ("TODO" ("WAITING") ("CANCELLED"))
+       ("STARTED" ("WAITING") ("PAUSED") ("NEXT" . t))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq org-tag-alist
+      '((:startgroup . nil)
+        ("today" . ?t)
+        ("tomorrow" . ?m)
+        ("next" . ?n)
+        (:endgroup . nil)
+        ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; org-remember (norang sec 4)
 ; http://orgmode.org/manual/Storing-notes.html
 
@@ -261,19 +214,6 @@ nil otherwise."
 
 ;; http://orgmode.org/manual/Remember-templates.html
 ;(setq org-remember-default-headline "Tasks")
-
-;(setq org-remember-templates (quote (
-;  ("todo" ?t "* TODO %?
-;  %U
-;  %a" nil bottom nil)
-;  ("note" ?n "* %?                                        :NOTE:
-;  %U
-;  %a" nil bottom nil)
-;  ("working on" ?w "* STARTED %?
-;  %U
-;
-;  %a" nil bottom nil)
-;  )))
 
 ;; http://orgmode.org/manual/Remember-templates.html
 ; (desc ?key "<template>" <file> <heading> <context where avail, can be left out>)
@@ -353,16 +293,10 @@ nil otherwise."
 
         ))
 
-
-(defun dss/org-current-timestamp ()
-  (let ((fmt (concat
-              "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
-    (format-time-string fmt)))
-
 (defun dss/org-capture-before-finalize-hook ()
   (eval (org-capture-get :before-finalize))
-  (org-id-get-create)
-  (org-set-property "ADDED" (dss/org-current-timestamp)))
+  (dss/org-insert-heading-hook))
+
 
 (add-hook 'org-capture-before-finalize-hook 'dss/org-capture-before-finalize-hook)
 
@@ -380,91 +314,32 @@ nil otherwise."
 
 
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; norang sec 5 refiling
-
-; Targets include this file and any file contributing to the agenda - up to 5 levels deep
-;(setq org-refile-targets (quote ((org-agenda-files . (:maxlevel . 5)) (nil :maxlevel . 5))))
-;(setq org-refile-targets `((org-agenda-files . (:maxlevel . 2)) (nil :maxlevel . 2)))
-
-(setq org-refile-targets '((org-agenda-files . (:maxlevel . 2)) (nil . (:maxlevel . 2))))
-(setq org-refile-use-outline-path 'file)
-(setq org-outline-path-complete-in-steps t) ; seems buggy when off
-(setq org-completion-use-ido t)
-; Targets start with the file name - allows creating level 1 tasks
-;(setq org-refile-use-outline-path (quote file))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; norang sec 6 custom agenda views
 (setq org-agenda-custom-commands
-      (quote (("S" "Started Tasks" todo "STARTED" ((org-agenda-todo-ignore-with-date nil)))
-              ("y" "Today's Tasks" todo "TODAY")
-              ("w" "Tasks waiting on something" tags "WAITING/!" ((org-use-tag-inheritance nil)))
-              ("r" "Refile New Notes and Tasks" tags "LEVEL=2+REFILE" ((org-agenda-todo-ignore-with-date nil)))
-              ("N" "Notes" tags "NOTE" nil)
-              ("n" "Next" tags "NEXT-WAITING-CANCELLED/!" nil))))
+      '(("S" "Started Tasks" todo "STARTED" ((org-agenda-todo-ignore-with-date nil)))
+        ("y" "Today's Tasks" tags "today")
+        ("m" "Tomorrow's Tasks" tags "tomorrow")
+        ("n" "Next Tasks" tags "next")
+        ("w" "Tasks waiting on something" tags "WAITING/!"
+         ((org-use-tag-inheritance nil)))
+        ("r" "Refile New Notes and Tasks" tags "LEVEL=2+REFILE"
+         ((org-agenda-todo-ignore-with-date nil)))
+        ("N" "Notes" tags "NOTE" nil)
+        ;; ("n" "Next" tags "NEXT-WAITING-CANCELLED/!" nil)
+        ))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; norang sec 7 clocking
-;; Resume clocking tasks when emacs is restarted
-(setq org-clock-persist t)
-(org-clock-persistence-insinuate)
-(setq org-clock-history-length 35)
-(setq org-clock-persist-query-resume nil)
-(setq org-clock-in-resume t)
-;; Change task state to STARTED when clocking in
-(setq org-clock-in-switch-to-state "STARTED")
-(setq org-clock-into-drawer "CLOCK")
-(setq org-clock-out-remove-zero-time-clocks t)
-(setq org-clock-out-when-done t)
-(setq org-time-stamp-rounding-minutes (quote (1 5)))
 
 ;; Agenda clock report parameters (no links, 2 levels deep)
 (setq org-agenda-clockreport-parameter-plist (quote (:link nil :maxlevel 3)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; see norang sec 8.2
-; Set default column view headings: Task Effort Clock_Summary
-;(setq org-columns-default-format "%80ITEM(Task) %10Effort(Effort){:} %10CLOCKSUM")
-(setq org-columns-default-format "%70ITEM %7TODO(To Do) %6Effort{:} %6CLOCKSUM{Total} %10Bill{+}")
-
-; global Effort estimate values
-;(setq org-global-properties
-;      (quote (("Effort_ALL" . "0:05 0:10 0:15 0:30 0:45 1:00 1:30 2:00 3:00 4:00 5:00 6:00 8:00"))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; norang 9.1
-; ; Tags with fast selection keys
-; (setq org-tag-alist (quote ((:startgroup)
-;                             ("@InTown" . ?t)
-;                             ("@Work" . ?w)
-;                             ("@Home" . ?h)
-;                             ("@Farm" . ?f)
-;                             (:endgroup)
-;                             ("QUOTE" . ?q)
-;                             ("NEXT" . ?N)
-;                             ("GSOC" . ?g)
-;                             ("WAITING" . ?W)
-;                             ("FARM" . ?F)
-;                             ("HOME" . ?H)
-;                             ("ORG" . ?O)
-;                             ("PLAY" . ?p)
-;                             ("CANCELLED" . ?C))))
-;
-; ; Allow setting single tags without the menu
-; (setq org-fast-tag-selection-single-key (quote expert))
-;
-; ; For tag searches ignore tasks with scheduled and deadline dates
-; (setq org-agenda-tags-todo-honor-ignore-options t)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; org-agenda norang sec 15
 (add-hook 'org-agenda-mode-hook '(lambda () (hl-line-mode 1)))
 (add-hook 'org-finalize-agenda-hook 'org-agenda-to-appt)
+
 (setq org-agenda-todo-ignore-with-date nil)
 (setq org-agenda-skip-deadline-if-done nil)
 (setq org-agenda-skip-scheduled-if-done nil)
+(setq org-deadline-warning-days 10)
 
 (add-hook 'org-agenda-mode-hook
           (lambda ()
@@ -472,27 +347,173 @@ nil otherwise."
           'append)
 
 (setq org-agenda-text-search-extra-files (quote (agenda-archives)))
-(setq org-enforce-todo-dependencies t)
 
-; 15.8.3 handling blank lines
-(setq org-cycle-separator-lines 0)
-(setq org-blank-before-new-entry (quote ((heading)
-                                         (plain-list-item))))
 
-(setq org-insert-heading-respect-content t)
-(setq org-return-follows-link nil)
+(defvar *dss-org-notification-hooks* nil)
+(defun dss/org-notify (msg)
+  (interactive "sMsg: ")
+  (dss/popup-notify "org-mode" msg)
+  (dss/org-set-task-state msg)
+  (run-hooks '*dss-org-notification-hooks*))
 
-; 15.8.7
-(setq org-show-following-heading t)
-(setq org-show-hierarchy-above t)
-(setq org-show-siblings nil)
+(setq org-show-notification-handler
+      (lambda (msg)
+        (dss/org-notify msg)))
 
-; 15.8.8
-(setq org-special-ctrl-a/e t)
-(setq org-special-ctrl-k t)
-(setq org-yank-adjusted-subtrees t)
+(setq dss-org-timer-message "timer done")
+(defun dss/org-set-timer-message (message)
+  (interactive "sMessage:")
+  (setq dss-org-timer-message message))
 
-; 15.13 logging
-;(setq org-log-done (quote time))
-(setq org-log-done nil)
-(setq org-log-into-drawer "LOGBOOK")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defvar *dss-nag-timer-hook* nil)
+(defun dss/osx-nag ()
+  (interactive)
+  (if (> (random 2) 0)
+      (dss/org-set-task-state "FOCUS !!!")
+    (dss/org-set-task-state "!!! FOCUS")))
+
+(add-hook '*dss-nag-timer-hook* 'dss/osx-nag)
+
+(defun dss/toggle-annoying-modeline ()
+  (interactive)
+  (if (face-inverse-video-p 'modeline)
+      (set-face-inverse-video-p 'modeline nil)
+    (set-face-inverse-video-p 'modeline t))
+  (run-hooks '*dss-nag-timer-hook*))
+
+(defun dss/start-annoying-modeline ()
+  (interactive)
+  (if *dss-annoying-modeline-timer*
+      (cancel-timer *dss-annoying-modeline-timer*))
+  (if (string-equal *dss-x-display* "b3")
+      (call-process-shell-command
+       "ssh -t vb3 DISPLAY=:0 ~/.fehbg-focus" nil 0))
+  (setq *dss-annoying-modeline-timer*
+        (run-with-timer 1 5 'dss/toggle-annoying-modeline)))
+
+(defvar *dss-annoying-modeline-timer* nil)
+
+(defun dss/cancel-annoying-modeline ()
+  (interactive)
+  (if *dss-annoying-modeline-timer*
+      (cancel-timer *dss-annoying-modeline-timer*))
+  (set-face-inverse-video-p 'modeline nil))
+
+(defun dss/nag-stop ()
+  (interactive)
+  (dss/cancel-annoying-modeline)
+  (save-excursion
+    (save-window-excursion
+      (with-current-buffer
+          (find-file (concat org-directory "log"))
+        (end-of-buffer)
+        (if (not (looking-at-p "^$"))
+            (insert "\n"))
+        (org-insert-time-stamp nil t t nil nil nil)
+        (insert " nagging-canceled")
+        (save-buffer)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun dss/org-clock-is-active ()
+  "Return true if clock is currently running.
+nil otherwise."
+  (if (marker-buffer org-clock-marker)
+      t))
+
+(defun dss/org-clock-heading ()
+  (interactive)
+  (if (org-clocking-p)
+      (let ((heading org-clock-heading))
+        (if heading (set-text-properties 0 (length heading) nil heading))
+        heading)))
+
+(defun dss/org-insert-link-to-clock ()
+  (interactive)
+  (save-window-excursion
+    (save-excursion
+      (org-clock-goto)
+      (org-id-get-create)
+      (call-interactively 'org-store-link)))
+  (let* ((last-stored (car org-stored-links))
+         (link (car last-stored))
+         ;; (desc (cdr last-stored))
+         (desc (dss/org-clock-heading)))
+    (insert (org-make-link-string link desc))))
+
+(defun dss/org-clock-in-hook ()
+  (dss/org-set-timer-message "take a break")
+  (org-id-get-create)
+  (dss/cancel-annoying-modeline)
+  (if (string-equal *dss-x-display* "b3")
+      (call-process-shell-command
+       "ssh -t vb3 DISPLAY=:0 ~/.fehbg-zen" nil 0))
+  (org-timer-set-timer '(16)))
+
+(defun dss/org-clock-out-hook ()
+  (org-timer-cancel-timer)
+  (dss/cancel-annoying-modeline)
+  (dss/org-set-timer-message "get back to work")
+  (org-timer-set-timer 5))
+
+(defun dss/org-after-todo-state-change-hook ()
+  (interactive)
+  (if (member org-state org-done-keywords)
+      (org-toggle-tag "today" 'off)))
+
+(add-hook 'org-after-todo-state-change-hook
+          'dss/org-after-todo-state-change-hook)
+
+(defun dss/org-timer-done-hook ()
+  (dss/popup-notify "org-mode" dss-org-timer-message)
+  (if *dss-annoying-modeline-timer*
+      (cancel-timer *dss-annoying-modeline-timer*))
+  (setq *dss-annoying-modeline-timer*
+        (run-with-timer 60 nil 'dss/start-annoying-modeline)))
+
+(add-hook 'org-clock-in-hook 'dss/org-clock-in-hook)
+(add-hook 'org-clock-out-hook 'dss/org-clock-out-hook)
+(setq org-timer-done-hook 'dss/org-timer-done-hook)
+
+(setq org-timer-default-timer 25)
+
+
+(defun dss/org-set-default-timer (time)
+  (interactive "nDefault: ")
+  (setq org-timer-default-timer time))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; http://osdir.com/ml/emacs-orgmode-gnu/2009-06/msg00144.html
+
+(defun dss/org-clock-increase-effort-estimate (add-effort)
+  "Add time to the effort estimate.
+Update Effort property of currently clocked item.
+Update mode line."
+  (interactive "sHow much to add? (hh:mm or mm)? ")
+  (if (and (dss/org-clock-is-active) org-clock-effort)
+      (let ((add-effort-minutes (dss/org-string-to-minutes add-effort)))
+        (progn (setq new-effort (org-minutes-to-hh:mm-string
+                                 (+ add-effort-minutes
+                                    (org-hh:mm-string-to-minutes
+                                     org-clock-effort))))
+               (dss/org-clock-set-effort new-effort)))))
+
+(defun dss/org-clock-set-effort (effort-string)
+  "Increase effort estimate PROPERTY for the currently clocked item.
+Jump to the correct buffer, increace the PROPERTY, jump back."
+  (interactive "sHow much to add? (hh:mm or mm)? ")
+  (if (dss/org-clock-is-active)
+      (save-window-excursion
+        (setq org-clock-effort effort-string)
+        (org-clock-update-mode-line)
+        (org-clock-goto)
+        (org-set-property "Effort" effort-string)
+        (message "Effort was increased."))))
+
+(defun dss/org-string-to-minutes (string)
+  "Recognizes two formats:
+1:30 - converted to minutes
+30 - interpreted as minutes."
+  (case (length (split-string string ":"))
+    (2 (org-hh:mm-string-to-minutes string))
+    (1 (string-to-int string))))
