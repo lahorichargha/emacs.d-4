@@ -2,6 +2,10 @@
 (require 'cc-vars)
 (require 'dss-codenav-helpers)
 
+
+;;; http://weblogs.asp.net/george_v_reilly/archive/2009/03/24/exuberant-ctags-and-javascript.aspx
+;;; http://tbaggery.com/2011/08/08/effortless-ctags-with-git.html
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Yegge's js2-mode with better indentation support
 
@@ -46,12 +50,44 @@
       (indent-line-to indentation)
       (when (> offset 0) (forward-char offset)))))
 
-(require 'flymake-jslint)
+;; (require 'flymake-jslint)
+(require 'flymake-node-jshint)
+
+;;; http://mattbriggs.net/blog/2012/03/18/awesome-emacs-plugins-ctags/
+(defun dss/js-ctags-here ()
+  (interactive)
+  (shell-command "ctags -e --recurse --extra=+fq --languages=javascript"))
+
+(defun js2-mode-split-string (parse-status)
+  "Turn a newline in mid-string into a string concatenation.
+PARSE-STATUS is as documented in `parse-partial-sexp'."
+  (let* ((col (current-column))
+         (quote-char (nth 3 parse-status))
+         (quote-string (string quote-char))
+         (string-beg (nth 8 parse-status))
+         (indent (save-match-data
+                   (or
+                    (save-excursion
+                      (back-to-indentation)
+                      (if (looking-at "\\+")
+                          (current-column)))
+                    (save-excursion
+                      (goto-char string-beg)
+                      (if (looking-back "\\+\\s-+")
+                          (goto-char (match-beginning 0)))
+                      (current-column))))))
+    (insert quote-char " +\n")
+    (indent-to indent)
+    (insert quote-string)
+    (when (eolp)
+      (insert quote-string)
+      (backward-char 1))))
+
 (defun dss/js2-mode-hook ()
   (require 'espresso)
-  (dss/lintnode -1)
-  (flymake-jslint-init)
   (flymake-mode)
+  ;; (setq ac-sources '(ac-source-semantic-raw))
+
   (setq espresso-indent-level 4
         indent-tabs-mode nil
         c-basic-offset 4)
@@ -119,7 +155,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 'coffee-mode)
+;; (require 'flymake-coffee)
+(require 'flymake-coffeelint)
+(setq flymake-coffeelint-config "~/.coffeelint.json")
 (setq coffee-js-mode 'js2-mode)
+(setq coffee-tab-width 2)
+
+(defun dss/coffee-electric-pair ()
+  ;; this version doesn't check to see if we're inside of a string or comment
+  (interactive)
+  (let (parens-require-spaces)
+    (insert-pair)))
+
+(defun dss/moz-coffee ()
+  (interactive)
+  (save-window-excursion
+    (with-current-buffer coffee-compiled-buffer-name
+      ;;  (point-min) (point-max)
+      (dss/moz-eval-buffer))))
 
 (defun dss/coffee-compile-buffer ()
   "Compiles the current buffer and displays the JS in another buffer."
@@ -127,6 +180,49 @@
   (save-excursion
     (save-window-excursion
       (dss/coffee-compile-region (point-min) (point-max)))))
+
+(defun dss/coffee-compile-buffer-map-line ()
+  (interactive)
+  (ignore-errors
+    (save-window-excursion
+      (save-excursion
+        (let ((source (buffer-string))
+              (current-line (save-restriction
+                              (widen)
+                              (count-lines 1 (point)))))
+          (with-temp-buffer
+            (insert source)
+            (goto-line current-line)
+            (dss/clone-line)
+            ;; (forward-line -1)
+            (back-to-indentation)
+            (insert "### line-marker: ")
+            (end-of-line)
+            (insert " ###")
+            (dss/coffee-compile-buffer))))))
+  (dss/coffee-jump-line))
+
+(defun dss/coffee-jump-line ()
+  (interactive)
+  (let ((pnt (save-window-excursion
+               (switch-to-buffer coffee-compiled-buffer-name)
+               (search-forward "line-marker")
+               (back-to-indentation)
+               (point))))
+    (dss/sync-point-all-windows (get-buffer coffee-compiled-buffer-name) pnt)))
+
+(defun dss/coffee-send-region (start end)
+  (interactive "r")
+  (save-excursion
+    (save-window-excursion
+      (dss/coffee-compile-region start end))))
+
+(defun dss/coffee-eval-para ()
+  (interactive)
+  (mark-paragraph)
+  (setq mark-active nil)
+  (call-interactively 'dss/flash-region)
+  (call-interactively 'dss/moz-eval-region))
 
 (defun dss/coffee-compile-region (start end)
   "Compiles a region and displays the JS in another buffer."
@@ -143,8 +239,23 @@
                        nil
                        "-s" "-p" "--bare")
   (switch-to-buffer (get-buffer coffee-compiled-buffer-name))
-  (funcall coffee-js-mode)
+  (ignore-errors (funcall coffee-js-mode))
   (goto-char (point-min)))
+
+(defun dss/coffee-mode-hook ()
+  (interactive)
+  ;; (flymake-coffee-load)
+  (flymake-mode)
+  (linum-mode 1)
+  (mapc (lambda (char)
+          (progn
+            (define-key coffee-mode-map char 'dss/coffee-electric-pair)))
+        '("\"" "'" "(" "[" "{"))
+  (dss/install-whitespace-cleanup-hook)
+  (define-key coffee-mode-map (kbd "M-<right>") 'dss/coffee-send-region)
+  (dss/add-after-save-hook 'dss/coffee-compile-buffer))
+
+(add-hook 'coffee-mode-hook 'dss/coffee-mode-hook)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
