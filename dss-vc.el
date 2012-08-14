@@ -3,6 +3,7 @@
 (require 'ediff-vers)
 (require 'vc)
 (require 'magit)
+(require 'monky)
 
 (setq magit-remote-ref-format 'remote-slash-branch)
 
@@ -48,6 +49,11 @@
     (when backend
       (vc-state-refresh file backend))))
 
+(defun dss/vc-choose-target ()
+  (interactive)
+  (ido-completing-read
+   "which: "
+   (split-string (shell-command-to-string "_vc_targets"))))
 ;;;
 (defun dss/git-rehitch ()
   (interactive)
@@ -73,5 +79,19 @@
     (insert "\n")))
 
 (add-hook 'magit-refresh-status-hook 'dss/magit-status-hook)
+
+(defun dss/magit-or-monky ()
+  (interactive)
+  (if (magit-get-top-dir default-directory)
+      (call-interactively 'magit-status)
+    (monky-status)))
+
+(setq monky-process-type 'cmdserver)
+;(define-key monky-queue-mode-map)
+;; (setq monky-hg-style-log-graph
+;;       (monky-get-style-path "log-graph")
+;;                                         ;"/home/tavis/mercurial-cli-templates/map-cmdline.sglog"
+;;       )
+
 
 (provide 'dss-vc)
