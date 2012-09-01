@@ -334,8 +334,18 @@
   "(let [" @ - "]" \n >
   @ _ ")")
 
+
+(define-skeleton dss/clojure-do-skeleton
+  "A simple e-lisp progn skeleton"
+  nil
+  "(do" @ - \n >
+  @ _ ")"
+    (dss/indent-defun)
+    (back-to-indentation))
 (defun dss/clojure-setup-skeletons ()
   (interactive)
+  (set (make-local-variable 'dss-progn-skeleton-func)
+       'dss/clojure-do-skeleton)
   (set (make-local-variable 'dss-defun-skeleton-func)
        'dss/clojure-defun-skeleton)
   (set (make-local-variable 'dss-let-skeleton-func)
@@ -345,6 +355,7 @@
   (interactive)
   (define-key clojure-mode-map (kbd "M-'") 'dss/clojure-ignore-form)
   (define-key clojure-mode-map (kbd "C-M-w") 'dss/indent-sexp)
+
   ;; (mapc (lambda (k)
   ;;         (define-key clojure-mode-map k 'dss/clojure-load-current-file))
   ;;       (list (kbd "C-x C-s") [(f12)]))
