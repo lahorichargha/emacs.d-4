@@ -1,5 +1,8 @@
 (require 'diminish)
 (require 'filladapt)
+(require 'flymake)
+(setq flymake-log-level 0)
+
 (setq-default filladapt-mode t)
 (diminish 'filladapt-mode "")
 (diminish 'abbrev-mode "Ab.")
@@ -72,9 +75,9 @@
 ;; http://www.bloomington.in.us/~brutt/marker-visit.el
 
 ;;; http://emacs-fu.blogspot.com/2009/05/tracking-changes.html
-(require 'hilit-chg)
+;; (require 'hilit-chg)
 (setq highlight-changes-visibility-initial-state nil)
-(global-highlight-changes-mode t)
+(global-highlight-changes-mode -1)
 ;; (global-set-key (kbd "<f6>")      'highlight-changes-visible-mode) ;; changes
 ;; ;; remove the change-highlight in region
 ;; (global-set-key (kbd "S-<f6>")    'highlight-changes-remove-highlight)
