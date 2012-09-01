@@ -535,3 +535,12 @@ Jump to the correct buffer, increace the PROPERTY, jump back."
   (case (length (split-string string ":"))
     (2 (org-hh:mm-string-to-minutes string))
     (1 (string-to-int string))))
+
+
+;;;  work around a bug in restoring the current editor window
+(defun org-edit-src-save ()
+  "Save parent buffer with current state source-code buffer."
+  (interactive)
+  (let ((buf (buffer-name (current-buffer))))
+    (org-src-in-org-buffer (save-buffer))
+    (switch-to-buffer buf)))
