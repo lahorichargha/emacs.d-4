@@ -1,7 +1,9 @@
+(require 'dss-lisps)
 (require 'slime)
 (slime-setup '(slime-repl))
 (setq slime-protocol-version 'ignore)
 (require 'slime-frame-colors)
+
 
 (add-to-list 'load-path (concat dss-vendor-dir "ac-slime"))
 (require 'ac-slime)
@@ -49,7 +51,9 @@
 (add-hook 'slime-connected-hook 'slime-remote-file-name-hook)
 
 (defun dss/slime-hook ()
+  (interactive)
   (paredit-mode 1)
+  ;; (define-key slime-mode-map " " 'dss/paredit-space-or-mark-sexp)
   (dss/load-slime-completion))
 
 (add-hook 'slime-mode-hook 'dss/slime-hook)
