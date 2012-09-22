@@ -9,6 +9,7 @@
 (evil-set-initial-state 'org-mode 'emacs)
 (evil-set-initial-state 'jabber-chat-mode 'emacs)
 (evil-set-initial-state 'jabber-roster-mode 'emacs)
+(evil-set-initial-state 'help-mode 'emacs)
 
 (setq evil-normal-state-tag
       (propertize "N"
